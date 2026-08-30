@@ -1,0 +1,99 @@
+{
+  "generator_version": "1.0.0",
+  "seed": 42,
+  "generated_at": "2026-08-30T22:10:25.097765+00:00",
+  "total_orders": 10564,
+  "total_settlements": 88,
+  "total_line_items": 10080,
+  "total_variances": 8,
+  "total_audit_logs": 9,
+  "clean_settlements_count": 80,
+  "anomalous_settlements_count": 8,
+  "demo_settlement": {
+    "id": "set_087",
+    "razorpay_settlement_id": "rzp_set_DEMO_20260828",
+    "utr": "UTR-DEMO-20260828-987654",
+    "variance_paise": -1700,
+    "variance_inr": -17.0,
+    "anomaly_type": "FEE_ANOMALY",
+    "affected_payments": [
+      "pay_demo_upi_001",
+      "pay_demo_upi_002",
+      "pay_demo_upi_003"
+    ]
+  },
+  "seeded_anomalies": [
+    {
+      "id": "var_0001",
+      "settlement_id": "set_020",
+      "anomaly_type": "AMOUNT_MISMATCH",
+      "severity": "HIGH",
+      "variance_paise": -50000,
+      "variance_inr": -500.0,
+      "title": "Amount Mismatch on MERCH-ORD-002130"
+    },
+    {
+      "id": "var_0002",
+      "settlement_id": "set_035",
+      "anomaly_type": "MISSING_SETTLEMENT_LINE",
+      "severity": "CRITICAL",
+      "variance_paise": -330354,
+      "variance_inr": -3303.54,
+      "title": "Missing Payment pay_003947 in Settlement Batch"
+    },
+    {
+      "id": "var_0003",
+      "settlement_id": "set_048",
+      "anomaly_type": "DUPLICATE",
+      "severity": "HIGH",
+      "variance_paise": 212321,
+      "variance_inr": 2123.21,
+      "title": "Duplicate Settlement Entry for pay_005499"
+    },
+    {
+      "id": "var_0004",
+      "settlement_id": "set_060",
+      "anomaly_type": "REFUND_MISMATCH",
+      "severity": "HIGH",
+      "variance_paise": -80000,
+      "variance_inr": -800.0,
+      "title": "Excess Refund Debit for Order MERCH-ORD-006908"
+    },
+    {
+      "id": "var_0005",
+      "settlement_id": "set_072",
+      "anomaly_type": "TIMING_DIFFERENCE",
+      "severity": "MEDIUM",
+      "variance_paise": 86021,
+      "variance_inr": 860.21,
+      "title": "Premature Settlement Line Item for pay_008769"
+    },
+    {
+      "id": "var_0006",
+      "settlement_id": "set_080",
+      "anomaly_type": "UNEXPLAINED_VARIANCE",
+      "severity": "HIGH",
+      "variance_paise": -3550,
+      "variance_inr": -35.5,
+      "title": "Unexplained Net Settlement Shortfall of INR 35.50"
+    },
+    {
+      "id": "var_0007",
+      "settlement_id": "set_084",
+      "anomaly_type": "FEE_ANOMALY",
+      "severity": "HIGH",
+      "variance_paise": -15878,
+      "variance_inr": -158.78,
+      "title": "MDR Fee Spike on 6 UPI Payments in Settlement set_RZP_0084_20260824"
+    },
+    {
+      "id": "var_0008",
+      "settlement_id": "set_087",
+      "anomaly_type": "FEE_ANOMALY",
+      "severity": "HIGH",
+      "variance_paise": -1700,
+      "variance_inr": -17.0,
+      "title": "MDR Rate Discrepancy on 3 UPI Transactions (INR 17.00 Discrepancy)"
+    }
+  ]
+}

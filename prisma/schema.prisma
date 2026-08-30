@@ -1,0 +1,147 @@
+// Settlement Detective - Minimal Prisma Schema (5 P0 Tables)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Order {
+  id                    String                @id @default(uuid())
+  merchantOrderId       String                @unique @map("merchant_order_id")
+  razorpayOrderId       String?               @unique @map("razorpay_order_id")
+  razorpayPaymentId     String?               @unique @map("razorpay_payment_id")
+  amountPaise           BigInt                @map("amount_paise")
+  feePaise              BigInt                @default(0) @map("fee_paise")
+  taxPaise              BigInt                @default(0) @map("tax_paise")
+  netPaise              BigInt                @default(0) @map("net_paise")
+  refundedAmountPaise   BigInt                @default(0) @map("refunded_amount_paise")
+  currency              String                @default("INR")
+  status                String                // created, authorized, captured, refunded, partially_refunded, failed
+  paymentMethod         String                @map("payment_method") // upi, card, netbanking, wallet
+  refundStatus          String                @default("none") @map("refund_status") // none, partial, full
+  customerEmail         String?               @map("customer_email")
+  customerPhone         String?               @map("customer_phone")
+  createdAt             DateTime              @map("created_at")
+  capturedAt            DateTime?             @map("captured_at")
+  refundedAt            DateTime?             @map("refunded_at")
+  metadata              Json?                 @default("{}")
+
+  lineItems             SettlementLineItem[]
+  variances             Variance[]
+
+  @@index([merchantOrderId])
+  @@index([razorpayOrderId])
+  @@index([razorpayPaymentId])
+  @@index([status])
+  @@index([paymentMethod])
+  @@index([createdAt])
+  @@index([capturedAt])
+  @@map("orders")
+}
+
+model Settlement {
+  id                    String                @id @default(uuid())
+  razorpaySettlementId  String                @unique @map("razorpay_settlement_id")
+  utr                   String?               @unique
+  amountPaise           BigInt                @map("amount_paise")
+  grossPaise            BigInt                @default(0) @map("gross_paise")
+  feesPaise             BigInt                @default(0) @map("fees_paise")
+  taxPaise              BigInt                @default(0) @map("tax_paise")
+  refundsPaise          BigInt                @default(0) @map("refunds_paise")
+  adjustmentsPaise      BigInt                @default(0) @map("adjustments_paise")
+  currency              String                @default("INR")
+  status                String                // created, processed, failed
+  periodStart           DateTime              @map("period_start")
+  periodEnd             DateTime              @map("period_end")
+  settledAt             DateTime?             @map("settled_at")
+  createdAt             DateTime              @default(now()) @map("created_at")
+  metadata              Json?                 @default("{}")
+
+  lineItems             SettlementLineItem[]
+  variances             Variance[]
+
+  @@index([razorpaySettlementId])
+  @@index([utr])
+  @@index([status])
+  @@index([settledAt])
+  @@index([periodStart, periodEnd])
+  @@map("settlements")
+}
+
+model SettlementLineItem {
+  id                    String                @id @default(uuid())
+  settlementId          String                @map("settlement_id")
+  entityId              String                @map("entity_id")
+  entityType            String                @map("entity_type") // payment, refund, adjustment
+  orderId               String?               @map("order_id")
+  amountPaise           BigInt                @map("amount_paise")
+  feePaise              BigInt                @default(0) @map("fee_paise")
+  taxPaise              BigInt                @default(0) @map("tax_paise")
+  debitPaise            BigInt                @default(0) @map("debit_paise")
+  creditPaise           BigInt                @default(0) @map("credit_paise")
+  currency              String                @default("INR")
+  settledAt             DateTime?             @map("settled_at")
+  createdAt             DateTime              @default(now()) @map("created_at")
+  metadata              Json?                 @default("{}")
+
+  settlement            Settlement            @relation(fields: [settlementId], references: [id], onDelete: Cascade)
+  order                 Order?                @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  variances             Variance[]
+
+  @@index([settlementId])
+  @@index([entityId])
+  @@index([entityType])
+  @@index([orderId])
+  @@index([createdAt])
+  @@map("settlement_line_items")
+}
+
+model Variance {
+  id                    String                @id @default(uuid())
+  settlementId          String?               @map("settlement_id")
+  orderId               String?               @map("order_id")
+  lineItemId            String?               @map("line_item_id")
+  anomalyType           String                @map("anomaly_type")
+  severity              String                // LOW, MEDIUM, HIGH, CRITICAL
+  expectedAmountPaise   BigInt                @map("expected_amount_paise")
+  actualAmountPaise     BigInt                @map("actual_amount_paise")
+  variancePaise         BigInt                @map("variance_paise")
+  title                 String
+  description           String
+  status                String                @default("detected") // detected, investigating, resolved, false_positive
+  evidence              Json?                 @default("{}")
+  createdAt             DateTime              @default(now()) @map("created_at")
+  updatedAt             DateTime              @default(now()) @map("updated_at")
+
+  settlement            Settlement?           @relation(fields: [settlementId], references: [id], onDelete: Cascade)
+  order                 Order?                @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  lineItem              SettlementLineItem?   @relation(fields: [lineItemId], references: [id], onDelete: SetNull)
+
+  @@index([settlementId])
+  @@index([orderId])
+  @@index([anomalyType])
+  @@index([severity])
+  @@index([status])
+  @@index([createdAt])
+  @@map("variances")
+}
+
+model AuditLog {
+  id                    String                @id @default(uuid())
+  eventType             String                @map("event_type")
+  entityType            String                @map("entity_type")
+  entityId              String                @map("entity_id")
+  description           String
+  actor                 String                @default("system")
+  metadata              Json?                 @default("{}")
+  createdAt             DateTime              @default(now()) @map("created_at")
+
+  @@index([eventType])
+  @@index([entityType, entityId])
+  @@index([createdAt])
+  @@map("audit_log")
+}
