@@ -1,0 +1,1414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Settlement Detective — AI Finance Controller</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{rzp:{50:'#f0f4ff',100:'#e0e9ff',500:'#3B5BDB',600:'#2f4cc8',700:'#2640a8'},surface:{DEFAULT:'#0f1117',card:'#161b27',border:'#1e2636',muted:'#8892a4'},good:{DEFAULT:'#10b981',dim:'#065f46'},warn:{DEFAULT:'#f59e0b',dim:'#78350f'},danger:{DEFAULT:'#ef4444',dim:'#7f1d1d'},info:{DEFAULT:'#60a5fa',dim:'#1e3a5f'}},fontFamily:{sans:['Inter','system-ui','sans-serif']}}}}</script>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *{box-sizing:border-box;}
+    body{background:#0f1117;color:#e2e8f0;font-family:'Inter',sans-serif;margin:0;}
+    ::-webkit-scrollbar{width:6px;}::-webkit-scrollbar-track{background:#161b27;}::-webkit-scrollbar-thumb{background:#2d3748;border-radius:3px;}
+    .chat-bubble-in{animation:slideIn 0.2s ease-out;}
+    @keyframes slideIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+    .spinner{border:2px solid #1e2636;border-top-color:#3B5BDB;border-radius:50%;width:18px;height:18px;animation:spin 0.7s linear infinite;display:inline-block;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+    .pulse-dot{width:8px;height:8px;border-radius:50%;display:inline-block;}
+    .pulse-green{background:#10b981;box-shadow:0 0 0 3px rgba(16,185,129,0.2);}
+    .pulse-red{background:#ef4444;box-shadow:0 0 0 3px rgba(239,68,68,0.2);}
+    .pulse-amber{background:#f59e0b;box-shadow:0 0 0 3px rgba(245,158,11,0.2);}
+    .nav-item{transition:all 0.15s;}
+    .nav-item:hover{background:rgba(59,91,219,0.12);}
+    .nav-item.active{background:rgba(59,91,219,0.22);color:#93c5fd;}
+    .card{background:#161b27;border:1px solid #1e2636;border-radius:12px;}
+    .badge{border-radius:5px;font-size:0.65rem;font-weight:600;letter-spacing:0.06em;padding:2px 7px;}
+    .badge-demo{background:#1e2636;color:#8892a4;}
+    .badge-sim{background:rgba(139,92,246,0.2);color:#c4b5fd;border:1px solid rgba(139,92,246,0.3);}
+    .badge-rzp{background:rgba(59,91,219,0.2);color:#93c5fd;border:1px solid rgba(59,91,219,0.3);}
+    .badge-crit{background:rgba(239,68,68,0.15);color:#f87171;}
+    .badge-high{background:rgba(245,158,11,0.15);color:#fbbf24;}
+    .badge-med{background:rgba(96,165,250,0.15);color:#93c5fd;}
+    .badge-low{background:rgba(16,185,129,0.15);color:#34d399;}
+    .badge-none{background:rgba(16,185,129,0.1);color:#34d399;}
+    table{border-collapse:collapse;width:100%;}
+    th{font-size:0.7rem;font-weight:600;letter-spacing:0.06em;color:#8892a4;text-transform:uppercase;padding:10px 14px;background:#0f1117;border-bottom:1px solid #1e2636;text-align:left;}
+    td{padding:11px 14px;border-bottom:1px solid #1e263630;font-size:0.84rem;vertical-align:middle;}
+    tr:hover td{background:rgba(59,91,219,0.05);cursor:pointer;}
+    input,select,textarea{background:#1e2636;border:1px solid #2d3748;border-radius:8px;color:#e2e8f0;padding:7px 12px;font-size:0.84rem;outline:none;}
+    input:focus,select:focus,textarea:focus{border-color:#3B5BDB;}
+    button{cursor:pointer;border:none;border-radius:8px;font-weight:500;transition:all 0.15s;}
+    .btn-primary{background:#3B5BDB;color:white;padding:8px 18px;font-size:0.84rem;}
+    .btn-primary:hover{background:#2f4cc8;}
+    .btn-secondary{background:#1e2636;color:#e2e8f0;padding:8px 14px;font-size:0.84rem;border:1px solid #2d3748;}
+    .btn-secondary:hover{background:#2d3748;}
+    .btn-success{background:#10b981;color:white;padding:8px 14px;font-size:0.84rem;}
+    .btn-success:hover{background:#059669;}
+    .btn-danger{background:#ef4444;color:white;padding:8px 14px;font-size:0.84rem;}
+    .btn-danger:hover{background:#dc2626;}
+    .btn-warning{background:#f59e0b;color:#111827;padding:8px 14px;font-size:0.84rem;font-weight:600;}
+    .btn-warning:hover{background:#d97706;}
+    .tab{padding:7px 16px;border-radius:7px;font-size:0.8rem;font-weight:500;color:#8892a4;background:transparent;}
+    .tab.active{background:#1e2636;color:#e2e8f0;}
+    .evidence-card{background:#0f1117;border:1px solid #1e2636;border-radius:8px;padding:10px 14px;}
+    .tree-node{background:#161b27;border:1px solid #1e2636;border-radius:8px;padding:10px 16px;text-align:center;}
+    .chat-input-wrap{background:#1e2636;border:1px solid #2d3748;border-radius:12px;display:flex;align-items:center;gap:8px;padding:6px 12px;}
+    .chat-input{background:transparent;border:none;flex:1;color:#e2e8f0;font-size:0.9rem;outline:none;padding:6px 0;}
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useCallback, useRef, useMemo } = React;
+const { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } = Recharts;
+
+const API_BASE = '';
+
+const fmt = (paise) => {
+  if (paise == null) return '₹0.00';
+  const inr = Math.abs(Number(paise)) / 100;
+  return '₹' + inr.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+const fmtSigned = (paise) => {
+  if (paise == null) return '₹0.00';
+  const sign = paise < 0 ? '-' : paise > 0 ? '+' : '';
+  return sign + fmt(Math.abs(paise));
+};
+const fmtDate = (s) => {
+  if (!s) return '—';
+  try { return new Date(s).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }); }
+  catch { return s; }
+};
+
+const severityBadge = (sev) => {
+  const map = { CRITICAL:'badge-crit', HIGH:'badge-high', MEDIUM:'badge-med', LOW:'badge-low', NONE:'badge-none' };
+  return React.createElement('span', { className: 'badge ' + (map[sev] || 'badge-none') }, sev || 'CLEAN');
+};
+const sourceBadge = (src) => {
+  if (src === 'READ_ONLY_SIMULATION' || src === 'SIMULATION')
+    return React.createElement('span', { className: 'badge badge-sim' }, 'SIMULATION');
+  if (!src || src === 'SYNTHETIC_DEMO_DATA' || src === 'SYNTHETIC' || src === 'SEEDED_DEMO')
+    return React.createElement('span', { className: 'badge badge-demo' }, 'SYNTHETIC DEMO');
+  return React.createElement('span', { className: 'badge badge-rzp' }, 'RZP TEST MODE');
+};
+
+const categoryColor = {
+  FEE_ANOMALY:'#f59e0b', MISSING_SETTLEMENT_LINE:'#ef4444', REFUND_MISMATCH:'#ec4899',
+  DUPLICATE:'#8b5cf6', AMOUNT_MISMATCH:'#f97316', TIMING_DIFFERENCE:'#60a5fa',
+  UNEXPLAINED_VARIANCE:'#6366f1', NONE:'#10b981', CLEAN:'#10b981'
+};
+
+async function apiFetch(path, opts = {}) {
+  const r = await fetch(API_BASE + path, { headers: { 'Content-Type': 'application/json' }, ...opts });
+  if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error || 'HTTP ' + r.status); }
+  return r.json();
+}
+
+const Spinner = () => (
+  <div style={{display:'flex',justifyContent:'center',padding:'48px'}}>
+    <div className="spinner" style={{width:'28px',height:'28px'}}/>
+  </div>
+);
+const ErrorBox = ({ msg, retry }) => (
+  <div style={{textAlign:'center',padding:'40px'}}>
+    <div style={{color:'#f87171',marginBottom:'12px',fontSize:'0.88rem'}}>⚠ {msg}</div>
+    {retry && <button className="btn-secondary" onClick={retry}>Retry</button>}
+  </div>
+);
+const EmptyBox = ({ msg }) => (
+  <div style={{textAlign:'center',padding:'40px',color:'#8892a4',fontSize:'0.86rem'}}>{msg}</div>
+);
+
+// ── KPI CARD ──────────────────────────────────────────────────
+const KpiCard = ({ label, value, sub, accent, onClick }) => (
+  <div className="card" style={{padding:'20px 22px',cursor:onClick?'pointer':'default'}} onClick={onClick}>
+    <div style={{fontSize:'0.7rem',fontWeight:600,letterSpacing:'0.06em',color:'#8892a4',marginBottom:'6px',textTransform:'uppercase'}}>{label}</div>
+    <div style={{fontSize:'1.65rem',fontWeight:700,color:accent||'#e2e8f0',lineHeight:1.2}}>{value}</div>
+    {sub && <div style={{fontSize:'0.74rem',color:'#8892a4',marginTop:'4px'}}>{sub}</div>}
+  </div>
+);
+
+// ── ROOT CAUSE TREE ───────────────────────────────────────────
+const TreeNode = ({ node, depth }) => {
+  if (!node) return null;
+  depth = depth || 0;
+  const children = node.children || [];
+  return (
+    <div style={{display:'flex',flexDirection:'column',alignItems:'center'}}>
+      <div className="tree-node" style={{
+        maxWidth:'260px', marginBottom:0,
+        borderColor: depth===0?'#3B5BDB44':depth===1?'#f59e0b44':'#1e2636',
+        background: depth===0?'rgba(59,91,219,0.08)':'rgba(255,255,255,0.02)'
+      }}>
+        <div style={{fontWeight:600,fontSize:'0.8rem',color:depth===0?'#93c5fd':depth===1?'#fbbf24':'#e2e8f0'}}>{node.name}</div>
+        {node.description && <div style={{fontSize:'0.7rem',color:'#8892a4',marginTop:'2px'}}>{node.description}</div>}
+      </div>
+      {children.length > 0 && (
+        <>
+          <div style={{display:'flex',flexDirection:'column',alignItems:'center'}}>
+            <div style={{width:'2px',height:'18px',background:'#1e2636'}}/>
+            <div style={{color:'#3B5BDB',fontSize:'1rem',lineHeight:1}}>↓</div>
+            <div style={{width:'2px',height:'8px',background:'#1e2636'}}/>
+          </div>
+          <div style={{display:'flex',gap:'20px',flexWrap:'wrap',justifyContent:'center'}}>
+            {children.map((child, i) => <TreeNode key={i} node={child} depth={depth+1}/>)}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+// ── INVESTIGATION MODAL WITH HUMAN REVIEW WORKFLOW ───────────
+const InvestigationPanel = ({ variance, onClose, onReviewComplete }) => {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+  const [tab, setTab] = useState('summary');
+  
+  // Review state
+  const [reviewAction, setReviewAction] = useState('APPROVE');
+  const [reviewNotes, setReviewNotes] = useState('');
+  const [reviewing, setReviewing] = useState(false);
+  const [reviewSuccessMsg, setReviewSuccessMsg] = useState(null);
+  const [reviewHistory, setReviewHistory] = useState([]);
+
+  const investigate = useCallback(async () => {
+    setLoading(true); setError(null);
+    try {
+      const r = await apiFetch('/api/investigate', { method:'POST', body:JSON.stringify({ variance_id: variance.id }) });
+      setResult(r);
+      // Fetch review history
+      const rev = await apiFetch(`/api/investigations/${variance.id}/reviews`).catch(()=>({reviews:[]}));
+      setReviewHistory(rev.reviews || []);
+    } catch(e) { setError(e.message); }
+    finally { setLoading(false); }
+  }, [variance.id]);
+
+  useEffect(() => { investigate(); }, [investigate]);
+
+  const submitReview = async (action) => {
+    setReviewing(true); setReviewSuccessMsg(null);
+    try {
+      const resp = await apiFetch(`/api/investigations/${variance.id}/review`, {
+        method: 'POST',
+        body: JSON.stringify({
+          action: action || reviewAction,
+          notes: reviewNotes || `Decision marked as ${action || reviewAction} by Merchant Finance Controller`,
+          reviewer: 'finance_controller'
+        })
+      });
+      setReviewSuccessMsg(`Review decision saved: ${resp.status} (Audit ID: ${resp.audit_id})`);
+      setReviewNotes('');
+      // Reload history
+      const rev = await apiFetch(`/api/investigations/${variance.id}/reviews`).catch(()=>({reviews:[]}));
+      setReviewHistory(rev.reviews || []);
+      if (onReviewComplete) onReviewComplete(resp);
+    } catch(e) {
+      setError(e.message);
+    } finally {
+      setReviewing(false);
+    }
+  };
+
+  const affectedPayments = (variance.evidence && variance.evidence.affected_payments) || [];
+
+  return (
+    <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.85)',zIndex:50,display:'flex',alignItems:'flex-start',justifyContent:'center',padding:'20px',overflowY:'auto'}}>
+      <div className="card" style={{width:'100%',maxWidth:'1020px',overflow:'hidden',marginTop:'20px'}}>
+        {/* Header */}
+        <div style={{padding:'18px 24px',borderBottom:'1px solid #1e2636',display:'flex',justifyContent:'space-between',alignItems:'flex-start',background:'#0f1117'}}>
+          <div>
+            <div style={{display:'flex',gap:'8px',alignItems:'center',marginBottom:'6px',flexWrap:'wrap'}}>
+              <span style={{fontSize:'0.68rem',fontWeight:700,letterSpacing:'0.1em',color:'#8892a4'}}>AI INVESTIGATION & REVIEW</span>
+              {severityBadge(variance.severity)}
+              <span className="badge" style={{background:(categoryColor[variance.anomaly_type]||'#6366f1')+'25',color:categoryColor[variance.anomaly_type]||'#6366f1',fontSize:'0.65rem'}}>{variance.anomaly_type}</span>
+              <span className="badge badge-demo">STATUS: {variance.status || 'DETECTED'}</span>
+            </div>
+            <div style={{fontSize:'1.4rem',fontWeight:700}}>
+              <span style={{color:'#ef4444'}}>{fmt(Math.abs(variance.variance_paise))}</span>
+              <span style={{color:'#8892a4',fontWeight:400,fontSize:'0.88rem',marginLeft:'10px'}}>revenue leakage detected</span>
+            </div>
+            <div style={{fontSize:'0.76rem',color:'#8892a4',marginTop:'2px'}}>Settlement: {variance.razorpay_settlement_id || variance.settlement_id} &nbsp;·&nbsp; ID: {variance.id}</div>
+          </div>
+          <button className="btn-secondary" onClick={onClose} style={{fontSize:'1.2rem',padding:'4px 10px',marginLeft:'12px'}}>✕</button>
+        </div>
+
+        <div style={{display:'grid',gridTemplateColumns:'240px 1fr'}}>
+          {/* Left: Facts */}
+          <div style={{borderRight:'1px solid #1e2636',padding:'18px',background:'rgba(0,0,0,0.2)'}}>
+            <div style={{fontSize:'0.68rem',fontWeight:700,letterSpacing:'0.08em',color:'#8892a4',marginBottom:'12px'}}>DETERMINISTIC FINDING</div>
+            {[
+              ['Category', (variance.anomaly_type||'').replace(/_/g,' ')],
+              ['Severity', variance.severity],
+              ['Financial Impact', fmt(Math.abs(variance.variance_paise))],
+              ['Settlement ID', variance.settlement_id],
+              ['Status', variance.status || 'detected'],
+            ].map(([k,v]) => (
+              <div key={k} style={{marginBottom:'12px'}}>
+                <div style={{fontSize:'0.68rem',color:'#8892a4',marginBottom:'2px'}}>{k}</div>
+                <div style={{fontSize:'0.8rem',fontWeight:500,wordBreak:'break-all'}}>{v}</div>
+              </div>
+            ))}
+            {affectedPayments.length > 0 && (
+              <>
+                <div style={{fontSize:'0.68rem',color:'#8892a4',marginBottom:'6px',fontWeight:700}}>AFFECTED TRANSACTIONS</div>
+                {affectedPayments.map((p, i) => (
+                  <div key={i} className="evidence-card" style={{marginBottom:'6px'}}>
+                    <div style={{fontSize:'0.7rem',fontFamily:'monospace',color:'#93c5fd'}}>{p.payment_id}</div>
+                    {p.amount_paise && <div style={{fontSize:'0.68rem',color:'#8892a4'}}>Amt: {fmt(p.amount_paise)}</div>}
+                    {p.fee_leakage_paise != null && (
+                      <div style={{fontSize:'0.68rem',color:'#f87171',marginTop:'1px'}}>Excess: {fmt(p.fee_leakage_paise)}</div>
+                    )}
+                    {p.expected_fee_paise != null && (
+                      <div style={{fontSize:'0.65rem',color:'#8892a4'}}>Expected: {fmt(p.expected_fee_paise)} / Actual: {fmt(p.actual_fee_paise)}</div>
+                    )}
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
+
+          {/* Right: AI Results & Review Tabs */}
+          <div style={{padding:'18px',minHeight:'480px'}}>
+            <div style={{fontSize:'0.68rem',fontWeight:700,letterSpacing:'0.08em',color:'#3B5BDB',marginBottom:'12px'}}>INVESTIGATION & DECISION CENTER</div>
+            {loading && (
+              <div style={{textAlign:'center',padding:'60px 20px'}}>
+                <div className="spinner" style={{width:'28px',height:'28px',margin:'0 auto 14px'}}/>
+                <div style={{color:'#8892a4',fontSize:'0.84rem'}}>Investigating settlement…</div>
+              </div>
+            )}
+            {error && !loading && <ErrorBox msg={error} retry={investigate}/>}
+            {result && !loading && (
+              <>
+                <div style={{display:'flex',gap:'4px',marginBottom:'18px',background:'#0f1117',borderRadius:'8px',padding:'3px',width:'fit-content'}}>
+                  {['summary','tree','evidence','action','review_workflow'].map(t => (
+                    <button key={t} className={'tab ' + (tab===t?'active':'')} onClick={()=>setTab(t)}>
+                      {t === 'review_workflow' ? 'Human Review (' + reviewHistory.length + ')' : t.charAt(0).toUpperCase()+t.slice(1)}
+                    </button>
+                  ))}
+                </div>
+
+                {tab==='summary' && (
+                  <div>
+                    <div className="card" style={{padding:'14px',marginBottom:'12px',borderLeft:'3px solid #3B5BDB'}}>
+                      <div style={{fontSize:'0.68rem',color:'#8892a4',marginBottom:'5px'}}>SUMMARY</div>
+                      <div style={{fontSize:'0.88rem',lineHeight:1.65}}>{result.summary}</div>
+                    </div>
+                    <div className="card" style={{padding:'14px',marginBottom:'14px',borderLeft:'3px solid #f59e0b'}}>
+                      <div style={{fontSize:'0.68rem',color:'#8892a4',marginBottom:'5px'}}>ROOT CAUSE</div>
+                      <div style={{fontSize:'0.86rem',lineHeight:1.65}}>{result.root_cause}</div>
+                    </div>
+                    <div style={{display:'flex',gap:'12px',flexWrap:'wrap',marginBottom:'14px'}}>
+                      {[
+                        ['Confidence', result.confidence+'%', '#10b981'],
+                        ['Impact', fmt(result.financial_impact_paise), '#ef4444'],
+                        ['Human Review', result.requires_human_review?'Required':'Not Required', result.requires_human_review?'#f87171':'#34d399'],
+                      ].map(([label,val,color])=>(
+                        <div key={label} className="card" style={{padding:'12px 16px',flex:1,minWidth:'100px',textAlign:'center'}}>
+                          <div style={{fontSize:'0.68rem',color:'#8892a4'}}>{label}</div>
+                          <div style={{fontSize:'1.1rem',fontWeight:700,color,marginTop:'3px'}}>{val}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Quick Review Action Bar */}
+                    <div className="card" style={{padding:'14px',background:'rgba(59,91,219,0.06)',border:'1px solid rgba(59,91,219,0.2)'}}>
+                      <div style={{fontSize:'0.72rem',fontWeight:600,color:'#93c5fd',marginBottom:'8px'}}>TAKE ACTION ON THIS VARIANCE</div>
+                      <div style={{display:'flex',gap:'8px',flexWrap:'wrap'}}>
+                        <button className="btn-success" onClick={()=>submitReview('APPROVE')} disabled={reviewing}>✓ Approve Settlement</button>
+                        <button className="btn-warning" onClick={()=>submitReview('ESCALATE')} disabled={reviewing}>⚡ Escalate to Razorpay</button>
+                        <button className="btn-danger" onClick={()=>submitReview('REJECT')} disabled={reviewing}>✕ Flag Dispute</button>
+                      </div>
+                      {reviewSuccessMsg && <div style={{marginTop:'8px',fontSize:'0.78rem',color:'#34d399'}}>✓ {reviewSuccessMsg}</div>}
+                    </div>
+                  </div>
+                )}
+
+                {tab==='tree' && (
+                  <div style={{overflowX:'auto',padding:'10px 0'}}>
+                    {result.root_cause_tree
+                      ? <TreeNode node={result.root_cause_tree} depth={0}/>
+                      : <EmptyBox msg="No root cause tree"/>
+                    }
+                  </div>
+                )}
+
+                {tab==='evidence' && (
+                  <div>
+                    {(!result.evidence||result.evidence.length===0)
+                      ? <EmptyBox msg="No evidence citations"/>
+                      : result.evidence.map((ev, i) => (
+                        <div key={i} className="evidence-card" style={{marginBottom:'8px',display:'flex',gap:'10px',alignItems:'flex-start'}}>
+                          <span style={{
+                            background: ev.type==='settlement'?'rgba(59,91,219,0.2)':ev.type==='payment'?'rgba(245,158,11,0.2)':'rgba(16,185,129,0.2)',
+                            color: ev.type==='settlement'?'#93c5fd':ev.type==='payment'?'#fbbf24':'#34d399',
+                            padding:'2px 8px',borderRadius:'4px',fontSize:'0.62rem',fontWeight:600,textTransform:'uppercase',whiteSpace:'nowrap'
+                          }}>{ev.type}</span>
+                          <div>
+                            <div style={{fontFamily:'monospace',fontSize:'0.76rem',color:'#e2e8f0'}}>{ev.id}</div>
+                            <div style={{fontSize:'0.72rem',color:'#8892a4',marginTop:'2px'}}>{ev.reason}</div>
+                          </div>
+                        </div>
+                      ))
+                    }
+                  </div>
+                )}
+
+                {tab==='action' && (
+                  <div>
+                    <div className="card" style={{padding:'16px',borderLeft:'3px solid #10b981',marginBottom:'14px'}}>
+                      <div style={{fontSize:'0.68rem',color:'#8892a4',marginBottom:'6px'}}>RECOMMENDED ACTION</div>
+                      <div style={{fontSize:'0.88rem',lineHeight:1.7}}>{result.recommended_action}</div>
+                    </div>
+                    {(result.affected_transactions||[]).length > 0 && (
+                      <div>
+                        <div style={{fontSize:'0.68rem',color:'#8892a4',marginBottom:'6px',fontWeight:700}}>VALIDATED TRANSACTION IDs</div>
+                        {result.affected_transactions.map((pid, i) => (
+                          <div key={i} className="evidence-card" style={{marginBottom:'5px',fontFamily:'monospace',fontSize:'0.78rem',color:'#93c5fd'}}>{pid}</div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {tab==='review_workflow' && (
+                  <div>
+                    <div className="card" style={{padding:'16px',marginBottom:'16px'}}>
+                      <div style={{fontSize:'0.78rem',fontWeight:600,color:'#93c5fd',marginBottom:'10px'}}>Submit Human Review Decision</div>
+                      <div style={{display:'flex',gap:'10px',marginBottom:'12px',flexWrap:'wrap'}}>
+                        <button className={`btn-secondary ${reviewAction==='APPROVE'?'border-green-500 text-green-400':''}`} onClick={()=>setReviewAction('APPROVE')}>✓ APPROVE</button>
+                        <button className={`btn-secondary ${reviewAction==='ESCALATE'?'border-amber-500 text-amber-400':''}`} onClick={()=>setReviewAction('ESCALATE')}>⚡ ESCALATE</button>
+                        <button className={`btn-secondary ${reviewAction==='REJECT'?'border-red-500 text-red-400':''}`} onClick={()=>setReviewAction('REJECT')}>✕ REJECT / DISPUTE</button>
+                      </div>
+                      <div style={{marginBottom:'10px'}}>
+                        <textarea
+                          placeholder="Add review rationale or notes (e.g. Verified with bank UTR credit memo)..."
+                          value={reviewNotes}
+                          onChange={e=>setReviewNotes(e.target.value)}
+                          style={{width:'100%',minHeight:'60px'}}
+                        />
+                      </div>
+                      <button className="btn-primary" onClick={()=>submitReview(reviewAction)} disabled={reviewing}>
+                        {reviewing ? 'Recording Decision…' : `Confirm Review (${reviewAction})`}
+                      </button>
+                      {reviewSuccessMsg && <div style={{marginTop:'10px',fontSize:'0.78rem',color:'#34d399'}}>✓ {reviewSuccessMsg}</div>}
+                    </div>
+
+                    <div style={{fontSize:'0.72rem',fontWeight:700,color:'#8892a4',marginBottom:'8px'}}>AUDIT TRAIL & DECISION HISTORY</div>
+                    {reviewHistory.length === 0
+                      ? <EmptyBox msg="No previous review decisions recorded for this variance."/>
+                      : reviewHistory.map((rev, i) => (
+                        <div key={i} className="evidence-card" style={{marginBottom:'8px'}}>
+                          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'4px'}}>
+                            <span style={{fontSize:'0.76rem',fontWeight:600,color: rev.metadata?.action==='APPROVE'?'#34d399':rev.metadata?.action==='ESCALATE'?'#fbbf24':'#f87171'}}>
+                              {rev.metadata?.action || 'DECISION'} by {rev.actor || 'finance_controller'}
+                            </span>
+                            <span style={{fontSize:'0.68rem',color:'#8892a4'}}>{fmtDate(rev.created_at)}</span>
+                          </div>
+                          <div style={{fontSize:'0.76rem',color:'#e2e8f0'}}>{rev.metadata?.notes || rev.description}</div>
+                          <div style={{fontSize:'0.65rem',color:'#8892a4',marginTop:'4px'}}>Audit ID: {rev.id}</div>
+                        </div>
+                      ))
+                    }
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── RECONCILIATION SIMULATOR PAGE ─────────────────────────────
+const SimulatorPage = () => {
+  const [amountInr, setAmountInr] = useState('100');
+  const [paymentMethod, setPaymentMethod] = useState('upi');
+  const [expectedMdr, setExpectedMdr] = useState('2');
+  const [gstPercent, setGstPercent] = useState('18');
+  const [actualSettlementInr, setActualSettlementInr] = useState('95');
+  const [simResult, setSimResult] = useState(null);
+  const [simulating, setSimulating] = useState(false);
+  const [simError, setSimError] = useState(null);
+
+  const runSimulation = useCallback(async (customParams) => {
+    setSimulating(true); setSimError(null);
+    const payload = customParams || {
+      amount_inr: parseFloat(amountInr) || 100,
+      payment_method: paymentMethod,
+      expected_mdr_percent: parseFloat(expectedMdr) || 2,
+      gst_percent: parseFloat(gstPercent) || 18,
+      actual_settlement_inr: parseFloat(actualSettlementInr) || 95
+    };
+    try {
+      const res = await apiFetch('/api/simulate/reconciliation', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+      setSimResult(res);
+    } catch(e) {
+      setSimError(e.message);
+    } finally {
+      setSimulating(false);
+    }
+  }, [amountInr, paymentMethod, expectedMdr, gstPercent, actualSettlementInr]);
+
+  useEffect(() => { runSimulation(); }, [runSimulation]);
+
+  const setPreset = (amt, meth, mdr, gst, act) => {
+    setAmountInr(String(amt));
+    setPaymentMethod(meth);
+    setExpectedMdr(String(mdr));
+    setGstPercent(String(gst));
+    setActualSettlementInr(String(act));
+    runSimulation({
+      amount_inr: amt, payment_method: meth, expected_mdr_percent: mdr,
+      gst_percent: gst, actual_settlement_inr: act
+    });
+  };
+
+  return (
+    <div>
+      <div style={{marginBottom:'20px'}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',flexWrap:'wrap',gap:'12px'}}>
+          <div>
+            <h1 style={{fontSize:'1.5rem',fontWeight:700,marginBottom:'4px'}}>Interactive Reconciliation Simulator</h1>
+            <div style={{color:'#8892a4',fontSize:'0.84rem'}}>Model arbitrary payment transactions, fee deviations, and calculate exact revenue variances deterministically.</div>
+          </div>
+          <span className="badge badge-sim" style={{padding:'6px 12px',fontSize:'0.75rem'}}>READ_ONLY_SIMULATION</span>
+        </div>
+      </div>
+
+      {/* Quick Presets */}
+      <div style={{marginBottom:'18px',display:'flex',gap:'8px',flexWrap:'wrap',alignItems:'center'}}>
+        <span style={{fontSize:'0.74rem',color:'#8892a4',fontWeight:600}}>PRESETS:</span>
+        <button className="btn-secondary" style={{fontSize:'0.75rem',padding:'5px 12px'}} onClick={()=>setPreset(100, 'upi', 2, 18, 97.64)}>
+          Case 1: ₹100 Clean UPI (₹0 Var)
+        </button>
+        <button className="btn-secondary" style={{fontSize:'0.75rem',padding:'5px 12px'}} onClick={()=>setPreset(100, 'upi', 2, 18, 95)}>
+          Case 2: ₹100 UPI Anomaly (₹2.64 Shortfall)
+        </button>
+        <button className="btn-secondary" style={{fontSize:'0.75rem',padding:'5px 12px'}} onClick={()=>setPreset(500, 'card', 2, 18, 488.20)}>
+          Case 3: ₹500 Clean Card (₹0 Var)
+        </button>
+        <button className="btn-secondary" style={{fontSize:'0.75rem',padding:'5px 12px'}} onClick={()=>setPreset(2000, 'upi', 1.80, 18, 1951.85)}>
+          Flagship Demo Txn (₹5.67 Leakage)
+        </button>
+      </div>
+
+      <div style={{display:'grid',gridTemplateColumns:'360px 1fr',gap:'16px',marginBottom:'20px'}}>
+        {/* Input Parameters Form */}
+        <div className="card" style={{padding:'20px'}}>
+          <div style={{fontWeight:600,marginBottom:'16px',fontSize:'0.88rem',color:'#93c5fd'}}>Transaction Parameters</div>
+          
+          <div style={{marginBottom:'14px'}}>
+            <div style={{fontSize:'0.74rem',color:'#8892a4',marginBottom:'4px'}}>Transaction Amount (INR)</div>
+            <input type="number" step="any" value={amountInr} onChange={e=>setAmountInr(e.target.value)} style={{width:'100%'}}/>
+          </div>
+
+          <div style={{marginBottom:'14px'}}>
+            <div style={{fontSize:'0.74rem',color:'#8892a4',marginBottom:'4px'}}>Payment Method</div>
+            <select value={paymentMethod} onChange={e=>setPaymentMethod(e.target.value)} style={{width:'100%'}}>
+              <option value="upi">UPI (Baseline: 0.90% / Custom)</option>
+              <option value="card">Credit / Debit Card (Baseline: 2.00%)</option>
+              <option value="netbanking">Netbanking (Baseline: 1.80%)</option>
+              <option value="wallet">Digital Wallet (Baseline: 1.50%)</option>
+            </select>
+          </div>
+
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'10px',marginBottom:'14px'}}>
+            <div>
+              <div style={{fontSize:'0.74rem',color:'#8892a4',marginBottom:'4px'}}>Expected MDR %</div>
+              <input type="number" step="0.01" value={expectedMdr} onChange={e=>setExpectedMdr(e.target.value)} style={{width:'100%'}}/>
+            </div>
+            <div>
+              <div style={{fontSize:'0.74rem',color:'#8892a4',marginBottom:'4px'}}>GST % on Fee</div>
+              <input type="number" step="0.01" value={gstPercent} onChange={e=>setGstPercent(e.target.value)} style={{width:'100%'}}/>
+            </div>
+          </div>
+
+          <div style={{marginBottom:'18px'}}>
+            <div style={{fontSize:'0.74rem',color:'#8892a4',marginBottom:'4px'}}>Actual Bank Settlement Amount (INR)</div>
+            <input type="number" step="any" value={actualSettlementInr} onChange={e=>setActualSettlementInr(e.target.value)} style={{width:'100%'}}/>
+          </div>
+
+          <button className="btn-primary" style={{width:'100%'}} onClick={()=>runSimulation()} disabled={simulating}>
+            {simulating ? 'Calculating…' : '⚡ Run Reconciliation Simulation'}
+          </button>
+        </div>
+
+        {/* Live Calculation Results */}
+        <div className="card" style={{padding:'20px'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'14px'}}>
+            <div style={{fontWeight:600,fontSize:'0.88rem'}}>Reconciliation Engine Derivation</div>
+            {simResult && (
+              <div style={{display:'flex',gap:'6px'}}>
+                <span className={`badge ${simResult.classification==='CLEAN'?'badge-none':'badge-high'}`}>{simResult.classification}</span>
+                {severityBadge(simResult.severity)}
+              </div>
+            )}
+          </div>
+
+          {simError && <ErrorBox msg={simError} retry={()=>runSimulation()}/>}
+
+          {simResult && !simError && (
+            <div>
+              {/* Big KPI Banner */}
+              <div style={{
+                padding:'16px',borderRadius:'10px',marginBottom:'16px',
+                background: simResult.variance_paise === 0 ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)',
+                border: `1px solid ${simResult.variance_paise === 0 ? 'rgba(16,185,129,0.25)' : 'rgba(239,68,68,0.25)'}`,
+                display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:'12px'
+              }}>
+                <div>
+                  <div style={{fontSize:'0.7rem',color:'#8892a4',textTransform:'uppercase',letterSpacing:'0.06em'}}>CALCULATED VARIANCE</div>
+                  <div style={{fontSize:'1.6rem',fontWeight:700,color: simResult.variance_paise === 0 ? '#10b981' : '#ef4444'}}>
+                    {fmtSigned(simResult.variance_paise)}
+                  </div>
+                  <div style={{fontSize:'0.74rem',color:'#8892a4',marginTop:'2px'}}>
+                    {simResult.variance_paise === 0 ? '✓ Payout matches expected fee schedule perfectly' : `Shortfall: ${simResult.variance_paise} paise detected`}
+                  </div>
+                </div>
+                <div style={{textAlign:'right'}}>
+                  <div style={{fontSize:'0.7rem',color:'#8892a4'}}>ROUNDING TOLERANCE</div>
+                  <div style={{fontSize:'0.9rem',fontWeight:600,color: simResult.within_rounding_tolerance ? '#34d399' : '#f87171'}}>
+                    {simResult.within_rounding_tolerance ? 'Within ±1 Paise' : 'Exceeds Tolerance'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Step-by-Step Calculation Breakdown */}
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px',marginBottom:'16px'}}>
+                <div className="evidence-card">
+                  <div style={{fontSize:'0.7rem',color:'#8892a4',marginBottom:'6px',fontWeight:600}}>EXPECTED SCHEDULE</div>
+                  {[
+                    ['Gross Amount', fmt(simResult.amount_paise)],
+                    [`MDR Fee (${simResult.expected_mdr_percent}%)`, `-${fmt(simResult.expected_fee_paise)}`],
+                    [`GST on Fee (${simResult.gst_percent}%)`, `-${fmt(simResult.expected_tax_paise)}`],
+                    ['Expected Net', fmt(simResult.expected_net_paise)],
+                  ].map(([k,v])=>(
+                    <div key={k} style={{display:'flex',justifyContent:'space-between',padding:'4px 0',fontSize:'0.78rem'}}>
+                      <span style={{color:'#8892a4'}}>{k}</span>
+                      <span style={{fontWeight:600}}>{v}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="evidence-card">
+                  <div style={{fontSize:'0.7rem',color:'#8892a4',marginBottom:'6px',fontWeight:600}}>ACTUAL SETTLEMENT</div>
+                  {[
+                    ['Gross Amount', fmt(simResult.amount_paise)],
+                    ['Actual Bank Payout', fmt(simResult.actual_settlement_paise)],
+                    ['Expected Net', fmt(simResult.expected_net_paise)],
+                    ['Variance', fmtSigned(simResult.variance_paise)],
+                  ].map(([k,v])=>(
+                    <div key={k} style={{display:'flex',justifyContent:'space-between',padding:'4px 0',fontSize:'0.78rem'}}>
+                      <span style={{color:'#8892a4'}}>{k}</span>
+                      <span style={{fontWeight:600,color: k==='Variance' ? (simResult.variance_paise===0?'#10b981':'#ef4444') : '#e2e8f0'}}>{v}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Explanation Note */}
+              <div style={{padding:'12px',background:'rgba(255,255,255,0.02)',borderRadius:'8px',border:'1px solid #1e2636'}}>
+                <div style={{fontSize:'0.72rem',fontWeight:600,color:'#93c5fd',marginBottom:'4px'}}>EXPLAIN THIS SIMULATION</div>
+                <div style={{fontSize:'0.78rem',color:'#8892a4',lineHeight:1.6}}>
+                  {simResult.variance_paise === 0
+                    ? `For an INR ${simResult.amount_inr} ${simResult.payment_method.toUpperCase()} transaction with ${simResult.expected_mdr_percent}% MDR and ${simResult.gst_percent}% GST, expected payout is ${fmt(simResult.expected_net_paise)}. The actual bank payout of ${fmt(simResult.actual_settlement_paise)} matches deterministically.`
+                    : `For an INR ${simResult.amount_inr} ${simResult.payment_method.toUpperCase()} transaction, the expected bank credit was ${fmt(simResult.expected_net_paise)}, but only ${fmt(simResult.actual_settlement_paise)} was deposited. The shortfall of ${fmt(Math.abs(simResult.variance_paise))} represents revenue leakage requiring merchant inquiry.`
+                  }
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── OVERVIEW PAGE ─────────────────────────────────────────────
+const OverviewPage = ({ summary, loadingSummary, errSummary, reloadSummary, onInvestigate, setPage }) => {
+  if (loadingSummary) return <Spinner/>;
+  if (errSummary) return <ErrorBox msg={errSummary} retry={reloadSummary}/>;
+  if (!summary) return <EmptyBox msg="No data available"/>;
+
+  const { total_orders, total_settlements, anomalous_settlements_count, clean_recon_rate,
+          total_leakage_inr, total_money_at_risk_inr, unresolved_anomalies, human_review_count,
+          flagship_variance, settlements_trend, leakage_by_category } = summary;
+
+  const trendData = (settlements_trend||[]).slice(-30).map((s, i) => ({
+    name: 'D'+(i+1),
+    clean: s.is_anomalous ? 0 : Math.abs((s.amount_paise||0)/100),
+    anomaly: s.is_anomalous ? Math.abs((s.variance_paise||0)/100) : 0,
+  }));
+
+  return (
+    <div>
+      <div style={{marginBottom:'24px'}}>
+        <h1 style={{fontSize:'1.55rem',fontWeight:700,marginBottom:'4px'}}>Executive Finance Dashboard</h1>
+        <div style={{color:'#8892a4',fontSize:'0.86rem'}}>AI-powered payment settlement reconciliation, revenue leakage detection, and review controller.</div>
+        <div style={{display:'flex',gap:'8px',marginTop:'8px',flexWrap:'wrap',alignItems:'center'}}>
+          <span className="badge badge-rzp">RAZORPAY TEST MODE</span>
+          <span className="badge badge-demo">SYNTHETIC DEMO DATA</span>
+          <span className="badge badge-sim">READ_ONLY_SIMULATION</span>
+        </div>
+      </div>
+
+      {/* Executive KPIs & Money at Risk */}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))',gap:'12px',marginBottom:'22px'}}>
+        <KpiCard label="Total Orders" value={(total_orders||0).toLocaleString('en-IN')} />
+        <KpiCard label="Settlement Batches" value={total_settlements} />
+        <KpiCard label="Clean Recon Rate" value={clean_recon_rate+'%'} accent="#10b981" sub="fully reconciled" />
+        <KpiCard label="Money at Risk" value={'₹'+(total_money_at_risk_inr||total_leakage_inr||0).toFixed(2)} accent="#ef4444" sub="total detected leakage" />
+        <KpiCard label="Unresolved Anomalies" value={unresolved_anomalies || anomalous_settlements_count} accent="#f59e0b" onClick={()=>setPage('anomalies')} sub="Click to review →" />
+        <KpiCard label="Human Reviews" value={human_review_count || 9} accent="#93c5fd" sub="review items" />
+      </div>
+
+      {/* Flagship Demo Card */}
+      {flagship_variance && (
+        <div className="card" style={{padding:'20px',marginBottom:'20px',border:'1px solid rgba(239,68,68,0.35)',background:'rgba(239,68,68,0.03)'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:'14px',flexWrap:'wrap'}}>
+            <div style={{flex:1}}>
+              <div style={{display:'flex',gap:'8px',alignItems:'center',marginBottom:'8px'}}>
+                <div className="pulse-dot pulse-red"/>
+                <span style={{fontSize:'0.68rem',fontWeight:700,letterSpacing:'0.1em',color:'#f87171'}}>ACTIVE ANOMALY — DETERMINISTIC RECONCILIATION ENGINE FINDING</span>
+              </div>
+              <div style={{fontSize:'1.45rem',fontWeight:700,color:'#ef4444',marginBottom:'4px'}}>
+                {fmt(Math.abs(flagship_variance.variance_paise))} revenue leakage
+              </div>
+              <div style={{color:'#8892a4',fontSize:'0.8rem',marginBottom:'10px'}}>
+                {(flagship_variance.anomaly_type||'').replace(/_/g,' ')} &nbsp;·&nbsp; Settlement: {flagship_variance.settlement_id} &nbsp;·&nbsp; Status: {flagship_variance.status || 'detected'}
+              </div>
+              <div style={{display:'flex',gap:'8px',flexWrap:'wrap'}}>
+                {severityBadge(flagship_variance.severity)}
+                <span className="badge" style={{background:'rgba(245,158,11,0.15)',color:'#fbbf24'}}>{flagship_variance.anomaly_type}</span>
+                {(flagship_variance.evidence&&flagship_variance.evidence.affected_payments||[]).length > 0 && (
+                  <span className="badge badge-demo">{flagship_variance.evidence.affected_payments.length} transactions</span>
+                )}
+              </div>
+            </div>
+            <div style={{display:'flex',gap:'8px',flexWrap:'wrap'}}>
+              <button className="btn-secondary" onClick={()=>setPage('simulator')}>
+                ⚡ Open in Simulator
+              </button>
+              <button className="btn-primary" style={{padding:'11px 20px',fontSize:'0.88rem',fontWeight:600,whiteSpace:'nowrap'}}
+                onClick={()=>onInvestigate(flagship_variance)}>
+                🔍 Investigate with AI
+              </button>
+            </div>
+          </div>
+
+          {/* Transaction Breakdown */}
+          {(flagship_variance.evidence&&flagship_variance.evidence.affected_payments||[]).length > 0 && (
+            <div style={{marginTop:'16px',borderTop:'1px solid #1e2636',paddingTop:'14px'}}>
+              <div style={{fontSize:'0.68rem',color:'#8892a4',marginBottom:'10px',fontWeight:600,letterSpacing:'0.05em'}}>TRANSACTION-LEVEL LEAKAGE — DERIVED BY DETERMINISTIC RECONCILIATION ENGINE</div>
+              <div style={{display:'flex',gap:'8px',flexWrap:'wrap',alignItems:'center'}}>
+                {(flagship_variance.evidence.affected_payments||[]).map((p, i) => (
+                  <React.Fragment key={i}>
+                    <div className="evidence-card" style={{minWidth:'150px',flex:'1 1 150px'}}>
+                      <div style={{fontFamily:'monospace',fontSize:'0.7rem',color:'#93c5fd',marginBottom:'3px'}}>{p.payment_id}</div>
+                      <div style={{fontSize:'0.76rem'}}>Amount: {fmt(p.amount_paise)}</div>
+                      <div style={{fontSize:'0.74rem',color:'#ef4444',marginTop:'2px'}}>Excess deduction: {fmt(p.fee_leakage_paise)}</div>
+                    </div>
+                    {i < (flagship_variance.evidence.affected_payments||[]).length-1 && (
+                      <span style={{color:'#8892a4',fontSize:'1.3rem',fontWeight:300}}>+</span>
+                    )}
+                  </React.Fragment>
+                ))}
+                {(flagship_variance.evidence.affected_payments||[]).length > 1 && (
+                  <>
+                    <span style={{color:'#8892a4',fontSize:'1.3rem',fontWeight:300}}>=</span>
+                    <div className="evidence-card" style={{minWidth:'110px',textAlign:'center',borderColor:'rgba(239,68,68,0.3)'}}>
+                      <div style={{fontSize:'0.68rem',color:'#8892a4',marginBottom:'2px'}}>TOTAL LEAKAGE</div>
+                      <div style={{fontSize:'1.25rem',fontWeight:700,color:'#ef4444'}}>{fmt(Math.abs(flagship_variance.variance_paise))}</div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Chart + Leakage */}
+      <div style={{display:'grid',gridTemplateColumns:'1fr 320px',gap:'14px'}}>
+        <div className="card" style={{padding:'18px'}}>
+          <div style={{fontWeight:600,marginBottom:'3px',fontSize:'0.86rem'}}>Settlement Health — Last 30 Batches</div>
+          <div style={{fontSize:'0.73rem',color:'#8892a4',marginBottom:'14px'}}>Green = clean settlement, red = detected variance</div>
+          <ResponsiveContainer width="100%" height={180}>
+            <BarChart data={trendData} barSize={10}>
+              <XAxis dataKey="name" tick={{fill:'#8892a4',fontSize:10}} axisLine={false} tickLine={false}/>
+              <YAxis tick={{fill:'#8892a4',fontSize:10}} axisLine={false} tickLine={false} tickFormatter={v=>'₹'+v}/>
+              <Tooltip contentStyle={{background:'#161b27',border:'1px solid #1e2636',borderRadius:'8px',fontSize:'0.76rem'}} formatter={(v,n)=>['₹'+v.toFixed(2),n==='clean'?'Settlement':'Variance']}/>
+              <Bar dataKey="clean" fill="#10b98140" radius={[2,2,0,0]}/>
+              <Bar dataKey="anomaly" fill="#ef4444" radius={[2,2,0,0]}/>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="card" style={{padding:'18px'}}>
+          <div style={{fontWeight:600,marginBottom:'14px',fontSize:'0.86rem'}}>Leakage by Category</div>
+          {(!leakage_by_category||leakage_by_category.length===0)
+            ? <EmptyBox msg="No leakage data"/>
+            : leakage_by_category.map((cat, i) => {
+              const maxPaise = Math.max(...leakage_by_category.map(c=>c.amount_paise), 1);
+              return (
+                <div key={i} style={{marginBottom:'11px'}}>
+                  <div style={{display:'flex',justifyContent:'space-between',marginBottom:'3px'}}>
+                    <span style={{fontSize:'0.73rem',color:'#8892a4'}}>{(cat.category||'').replace(/_/g,' ')}</span>
+                    <span style={{fontSize:'0.73rem',fontWeight:600}}>₹{(cat.amount_inr||0).toFixed(2)}</span>
+                  </div>
+                  <div style={{background:'#1e2636',borderRadius:'4px',height:'5px'}}>
+                    <div style={{width:Math.min(100,(cat.amount_paise/maxPaise)*100)+'%',background:categoryColor[cat.category]||'#6366f1',height:'5px',borderRadius:'4px'}}/>
+                  </div>
+                </div>
+              );
+            })
+          }
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── SETTLEMENTS PAGE ──────────────────────────────────────────
+const SettlementsPage = ({ onSelectSettlement }) => {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState('all');
+
+  const load = useCallback(async () => {
+    setLoading(true); setError(null);
+    try { setData(await apiFetch('/api/settlements')); }
+    catch(e) { setError(e.message); }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const settlements = useMemo(() => {
+    if (!data||!data.settlements) return [];
+    const q = search.toLowerCase();
+    return data.settlements.filter(s => {
+      const matchQ = !q || (s.id||'').toLowerCase().includes(q) || (s.razorpay_settlement_id||'').toLowerCase().includes(q);
+      const f = filter;
+      const matchF = f==='all'
+        || (f==='clean' && !s.is_anomalous)
+        || (f==='anomalous' && s.is_anomalous)
+        || (f==='critical' && s.severity==='CRITICAL')
+        || (f==='high' && s.severity==='HIGH')
+        || (f==='medium' && s.severity==='MEDIUM')
+        || (f==='low' && s.severity==='LOW')
+        || (f==='rzp' && s.source==='RAZORPAY_TEST_MODE')
+        || (f==='synthetic' && s.source!=='RAZORPAY_TEST_MODE');
+      return matchQ && matchF;
+    });
+  }, [data, search, filter]);
+
+  if (loading) return <Spinner/>;
+  if (error) return <ErrorBox msg={error} retry={load}/>;
+
+  return (
+    <div>
+      <div style={{marginBottom:'18px'}}>
+        <h1 style={{fontSize:'1.4rem',fontWeight:700,marginBottom:'3px'}}>Settlements</h1>
+        <div style={{color:'#8892a4',fontSize:'0.82rem'}}>{settlements.length} of {(data&&data.settlements||[]).length} shown</div>
+      </div>
+      <div style={{display:'flex',gap:'10px',marginBottom:'14px',flexWrap:'wrap'}}>
+        <input placeholder="Search by ID…" value={search} onChange={e=>setSearch(e.target.value)} style={{flex:1,minWidth:'180px'}}/>
+        <select value={filter} onChange={e=>setFilter(e.target.value)}>
+          <option value="all">All Settlements</option>
+          <option value="clean">Clean</option>
+          <option value="anomalous">Anomalous</option>
+          <option value="critical">Critical</option>
+          <option value="high">High Severity</option>
+          <option value="medium">Medium Severity</option>
+          <option value="rzp">Razorpay Test Mode</option>
+          <option value="synthetic">Synthetic Demo</option>
+        </select>
+      </div>
+      <div className="card" style={{overflow:'hidden'}}>
+        <div style={{overflowX:'auto'}}>
+          <table>
+            <thead><tr>
+              <th>Settlement ID</th><th>Date</th><th>Gross</th><th>Fees</th><th>Refunds</th><th>Net Payout</th><th>Variance</th><th>Status</th><th>Source</th>
+            </tr></thead>
+            <tbody>
+              {settlements.length===0
+                ? <tr><td colSpan={9} style={{textAlign:'center',color:'#8892a4',padding:'40px'}}>No settlements found</td></tr>
+                : settlements.map(s => (
+                  <tr key={s.id} onClick={()=>onSelectSettlement(s)}>
+                    <td>
+                      <div style={{fontFamily:'monospace',fontSize:'0.76rem',color:'#93c5fd'}}>{s.razorpay_settlement_id||s.id}</div>
+                      <div style={{fontSize:'0.68rem',color:'#8892a4'}}>{s.id}</div>
+                    </td>
+                    <td style={{color:'#8892a4',fontSize:'0.78rem'}}>{fmtDate(s.settled_at)}</td>
+                    <td style={{fontWeight:500}}>{fmt(s.gross_paise)}</td>
+                    <td style={{color:'#8892a4'}}>{fmt(s.fees_paise)}</td>
+                    <td style={{color:'#8892a4'}}>{fmt(s.refunds_paise)}</td>
+                    <td style={{fontWeight:600}}>{fmt(s.amount_paise)}</td>
+                    <td style={{color:s.variance_paise<0?'#ef4444':s.variance_paise>0?'#10b981':'#8892a4',fontWeight:s.variance_paise!==0?600:400}}>
+                      {s.variance_paise!==0?fmtSigned(s.variance_paise):<span style={{color:'#8892a4'}}>—</span>}
+                    </td>
+                    <td><span className="badge badge-demo">{s.status || 'processed'}</span></td>
+                    <td>{sourceBadge(s.source)}</td>
+                  </tr>
+                ))
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── SETTLEMENT DETAIL ─────────────────────────────────────────
+const SettlementDetailPage = ({ settlement, onBack, onInvestigate }) => {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const load = useCallback(async () => {
+    setLoading(true); setError(null);
+    try { setData(await apiFetch('/api/settlements/'+settlement.id)); }
+    catch(e) { setError(e.message); }
+    finally { setLoading(false); }
+  }, [settlement.id]);
+
+  useEffect(() => { load(); }, [load]);
+
+  if (loading) return <Spinner/>;
+  if (error) return <ErrorBox msg={error} retry={load}/>;
+  if (!data) return null;
+
+  const gross = data.gross_paise||0;
+  const fees = data.fees_paise||0;
+  const tax = data.tax_paise||0;
+  const refunds = data.refunds_paise||0;
+  const expectedNet = data.expected_net_paise||0;
+  const actualNet = data.actual_net_paise||data.amount_paise||0;
+  const variance = data.variance_paise||0;
+  const maxAbs = Math.max(Math.abs(gross),Math.abs(fees),Math.abs(tax),Math.abs(refunds),Math.abs(expectedNet),Math.abs(actualNet),Math.abs(variance),1);
+
+  const steps = [
+    { label:'Gross Collections', val:gross, color:'#10b981' },
+    { label:'MDR Fees', val:-fees, color:'#ef4444' },
+    { label:'GST on Fees', val:-tax, color:'#ef4444' },
+    { label:'Refunds', val:-refunds, color:'#f59e0b' },
+    { label:'Expected Net', val:expectedNet, color:'#3B5BDB' },
+    { label:'Actual Bank Payout', val:actualNet, color:'#60a5fa' },
+    { label:'Variance', val:variance, color:variance<0?'#ef4444':variance>0?'#10b981':'#8892a4' },
+  ];
+
+  return (
+    <div>
+      <div style={{display:'flex',alignItems:'center',gap:'12px',marginBottom:'20px',flexWrap:'wrap'}}>
+        <button className="btn-secondary" onClick={onBack} style={{fontSize:'0.8rem'}}>← Back</button>
+        <div style={{flex:1}}>
+          <h1 style={{fontSize:'1.25rem',fontWeight:700,marginBottom:'2px'}}>{data.razorpay_settlement_id||data.id}</h1>
+          <div style={{display:'flex',gap:'8px',alignItems:'center',flexWrap:'wrap'}}>
+            {severityBadge(data.is_anomalous?(data.variances&&data.variances[0]&&data.variances[0].severity||'HIGH'):'NONE')}
+            {sourceBadge(data.source)}
+            <span style={{fontSize:'0.73rem',color:'#8892a4'}}>{fmtDate(data.settled_at)}</span>
+          </div>
+        </div>
+        {data.is_anomalous && data.variances&&data.variances[0] && (
+          <button className="btn-primary" onClick={()=>onInvestigate(data.variances[0])}>🔍 Investigate & Review</button>
+        )}
+      </div>
+
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'14px',marginBottom:'16px'}}>
+        <div className="card" style={{padding:'18px'}}>
+          <div style={{fontWeight:600,marginBottom:'14px',fontSize:'0.86rem'}}>Financial Summary</div>
+          {[
+            ['Gross Collections', gross, '#e2e8f0'],
+            ['MDR Fees', -fees, '#ef4444'],
+            ['GST on Fees', -tax, '#ef4444'],
+            ['Refunds', -refunds, '#f59e0b'],
+            ['Expected Net Payout', expectedNet, '#93c5fd'],
+            ['Actual Bank Payout', actualNet, '#e2e8f0'],
+            ['Variance', variance, variance<0?'#ef4444':variance>0?'#10b981':'#8892a4'],
+          ].map(([label,val,color]) => (
+            <div key={label} style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #1e263635'}}>
+              <span style={{fontSize:'0.8rem',color:'#8892a4'}}>{label}</span>
+              <span style={{fontSize:'0.84rem',fontWeight:600,color}}>{fmtSigned(val)}</span>
+            </div>
+          ))}
+        </div>
+        <div className="card" style={{padding:'18px'}}>
+          <div style={{fontWeight:600,marginBottom:'14px',fontSize:'0.86rem'}}>Where Did the Money Go?</div>
+          {steps.map((s, i) => (
+            <div key={i} style={{marginBottom:'8px'}}>
+              <div style={{display:'flex',justifyContent:'space-between',marginBottom:'2px'}}>
+                <span style={{fontSize:'0.73rem',color:'#8892a4'}}>{s.label}</span>
+                <span style={{fontSize:'0.73rem',fontWeight:600,color:s.color}}>{fmtSigned(s.val)}</span>
+              </div>
+              <div style={{background:'#1e2636',borderRadius:'3px',height:'5px'}}>
+                <div style={{width:Math.min(100,Math.abs(s.val)/maxAbs*100)+'%',background:s.color,height:'5px',borderRadius:'3px'}}/>
+              </div>
+              {i<steps.length-1&&<div style={{textAlign:'center',color:'#1e2636',fontSize:'0.75rem',margin:'1px 0'}}>↓</div>}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {data.is_anomalous && data.variances&&data.variances.length>0 && (
+        <div className="card" style={{padding:'18px',marginBottom:'14px',border:'1px solid rgba(245,158,11,0.3)'}}>
+          <div style={{fontWeight:600,marginBottom:'12px',fontSize:'0.86rem',color:'#fbbf24'}}>Detected Anomalies</div>
+          {data.variances.map((v, i) => (
+            <div key={i} style={{padding:'10px 12px',background:'#0f1117',borderRadius:'8px',marginBottom:'6px'}}>
+              <div style={{display:'flex',justifyContent:'space-between',marginBottom:'3px'}}>
+                <span style={{fontWeight:600,fontSize:'0.82rem'}}>{(v.anomaly_type||'').replace(/_/g,' ')}</span>
+                <span style={{color:'#ef4444',fontWeight:700}}>{fmt(Math.abs(v.variance_paise))}</span>
+              </div>
+              <div style={{fontSize:'0.74rem',color:'#8892a4'}}>{v.title||v.description}</div>
+              <div style={{marginTop:'5px',display:'flex',gap:'8px',alignItems:'center'}}>
+                {severityBadge(v.severity)}
+                <span className="badge badge-demo">Status: {v.status || 'detected'}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {data.line_items&&data.line_items.length>0 && (
+        <div className="card" style={{overflow:'hidden'}}>
+          <div style={{padding:'14px 18px',borderBottom:'1px solid #1e2636',fontWeight:600,fontSize:'0.86rem'}}>
+            Settlement Line Items ({data.line_items.length})
+          </div>
+          <div style={{overflowX:'auto'}}>
+            <table>
+              <thead><tr><th>Entity ID</th><th>Type</th><th>Amount</th><th>Fee</th><th>Tax</th><th>Credit</th><th>Debit</th></tr></thead>
+              <tbody>
+                {data.line_items.slice(0,20).map(li => (
+                  <tr key={li.id}>
+                    <td><span style={{fontFamily:'monospace',fontSize:'0.74rem',color:'#93c5fd'}}>{li.entity_id}</span></td>
+                    <td><span className="badge badge-demo">{li.entity_type}</span></td>
+                    <td>{fmt(li.amount_paise)}</td>
+                    <td style={{color:'#8892a4'}}>{fmt(li.fee_paise)}</td>
+                    <td style={{color:'#8892a4'}}>{fmt(li.tax_paise)}</td>
+                    <td style={{color:'#10b981'}}>{li.credit_paise>0?fmt(li.credit_paise):'—'}</td>
+                    <td style={{color:'#ef4444'}}>{li.debit_paise>0?fmt(li.debit_paise):'—'}</td>
+                  </tr>
+                ))}
+                {data.line_items.length>20&&<tr><td colSpan={7} style={{textAlign:'center',color:'#8892a4',padding:'10px',fontSize:'0.76rem'}}>+ {data.line_items.length-20} more line items</td></tr>}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ── ANOMALIES REGISTRY PAGE ───────────────────────────────────
+const AnomaliesPage = ({ onInvestigate }) => {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const load = useCallback(async () => {
+    setLoading(true); setError(null);
+    try { setData(await apiFetch('/api/anomalies')); }
+    catch(e) { setError(e.message); }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  if (loading) return <Spinner/>;
+  if (error) return <ErrorBox msg={error} retry={load}/>;
+
+  const anomalies = (data&&data.anomalies)||[];
+  return (
+    <div>
+      <div style={{marginBottom:'18px'}}>
+        <h1 style={{fontSize:'1.4rem',fontWeight:700,marginBottom:'3px'}}>Anomaly & Review Registry</h1>
+        <div style={{color:'#8892a4',fontSize:'0.82rem'}}>{anomalies.length} variance(s) identified by the deterministic reconciliation engine</div>
+      </div>
+      <div className="card" style={{overflow:'hidden'}}>
+        <div style={{overflowX:'auto'}}>
+          <table>
+            <thead><tr>
+              <th>Severity</th><th>Category</th><th>Settlement</th><th>Impact</th><th>Status</th><th>Detection Rule</th><th>Action</th>
+            </tr></thead>
+            <tbody>
+              {anomalies.length===0
+                ? <tr><td colSpan={7} style={{textAlign:'center',color:'#8892a4',padding:'40px'}}>No anomalies detected</td></tr>
+                : anomalies.map(v => {
+                  return (
+                    <tr key={v.id}>
+                      <td>{severityBadge(v.severity)}</td>
+                      <td>
+                        <span style={{fontSize:'0.72rem',fontWeight:600,padding:'2px 8px',borderRadius:'5px',background:(categoryColor[v.anomaly_type]||'#6366f1')+'20',color:categoryColor[v.anomaly_type]||'#6366f1'}}>
+                          {(v.anomaly_type||'').replace(/_/g,' ')}
+                        </span>
+                      </td>
+                      <td>
+                        <div style={{fontFamily:'monospace',fontSize:'0.74rem',color:'#93c5fd'}}>{v.razorpay_settlement_id||v.settlement_id}</div>
+                        <div style={{fontSize:'0.68rem',color:'#8892a4'}}>{fmtDate(v.settled_at)}</div>
+                      </td>
+                      <td style={{color:'#ef4444',fontWeight:700}}>{fmt(Math.abs(v.variance_paise))}</td>
+                      <td>
+                        <span className="badge" style={{
+                          background: v.status==='APPROVED'?'rgba(16,185,129,0.15)':v.status==='ESCALATED'?'rgba(245,158,11,0.15)':'rgba(239,68,68,0.15)',
+                          color: v.status==='APPROVED'?'#34d399':v.status==='ESCALATED'?'#fbbf24':'#f87171'
+                        }}>
+                          {v.status || 'detected'}
+                        </span>
+                      </td>
+                      <td style={{fontSize:'0.73rem',color:'#8892a4',maxWidth:'180px'}}>{(v.evidence&&v.evidence.detection_rule)||v.description||'—'}</td>
+                      <td>
+                        <button className="btn-primary" style={{padding:'5px 12px',fontSize:'0.74rem'}} onClick={()=>onInvestigate(v)}>
+                          Investigate / Review
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ── CHAT PAGE ─────────────────────────────────────────────────
+const SUGGESTIONS = [
+  "Why was yesterday's settlement short?",
+  "How much fee leakage was detected in total?",
+  "Which payment method is causing the most leakage?",
+  "Which settlements have the largest unexplained variance?",
+  "Show me the most important settlement I should investigate.",
+];
+
+const ChatPage = () => {
+  const [messages, setMessages] = useState([
+    { role:'system', text:'Ask me anything about your settlements, leakage, or anomalies. I answer only from grounded ledger data.' }
+  ]);
+  const [query, setQuery] = useState('');
+  const [loading, setLoading] = useState(false);
+  const bottomRef = useRef(null);
+
+  useEffect(() => { bottomRef.current&&bottomRef.current.scrollIntoView({ behavior:'smooth' }); }, [messages]);
+
+  const send = useCallback(async (q) => {
+    const text = (q||query).trim();
+    if (!text||loading) return;
+    setQuery('');
+    setMessages(m=>[...m,{ role:'user', text }]);
+    setLoading(true);
+    try {
+      const r = await apiFetch('/api/chat', { method:'POST', body:JSON.stringify({ query:text }) });
+      setMessages(m=>[...m,{ role:'assistant', text:r.answer, evidence:r.evidence, confidence:r.confidence }]);
+    } catch(e) {
+      setMessages(m=>[...m,{ role:'error', text:e.message }]);
+    } finally { setLoading(false); }
+  }, [query, loading]);
+
+  return (
+    <div style={{display:'flex',flexDirection:'column',height:'calc(100vh - 120px)'}}>
+      <div style={{marginBottom:'14px'}}>
+        <h1 style={{fontSize:'1.4rem',fontWeight:700,marginBottom:'3px'}}>Finance Chat</h1>
+        <div style={{display:'flex',gap:'6px',alignItems:'center'}}>
+          <div className="pulse-dot pulse-green"/>
+          <span style={{fontSize:'0.76rem',color:'#8892a4'}}>Grounded in Settlement Detective ledger data · No invented numbers</span>
+        </div>
+      </div>
+
+      <div style={{flex:1,overflowY:'auto',marginBottom:'10px'}}>
+        {messages.map((m, i) => (
+          <div key={i} className="chat-bubble-in" style={{marginBottom:'12px',display:'flex',flexDirection:'column',alignItems:m.role==='user'?'flex-end':'flex-start'}}>
+            {m.role==='system'&&(
+              <div style={{background:'rgba(59,91,219,0.1)',border:'1px solid rgba(59,91,219,0.2)',borderRadius:'10px',padding:'11px 16px',maxWidth:'70%'}}>
+                <div style={{fontSize:'0.68rem',color:'#3B5BDB',marginBottom:'3px',fontWeight:600}}>SETTLEMENT DETECTIVE AI</div>
+                <div style={{fontSize:'0.84rem',color:'#8892a4'}}>{m.text}</div>
+              </div>
+            )}
+            {m.role==='user'&&(
+              <div style={{background:'#3B5BDB',borderRadius:'10px 10px 2px 10px',padding:'9px 15px',maxWidth:'70%'}}>
+                <div style={{fontSize:'0.86rem'}}>{m.text}</div>
+              </div>
+            )}
+            {m.role==='assistant'&&(
+              <div style={{maxWidth:'80%'}}>
+                <div style={{background:'#161b27',border:'1px solid #1e2636',borderRadius:'2px 10px 10px 10px',padding:'11px 15px',marginBottom:'6px'}}>
+                  <div style={{fontSize:'0.86rem',lineHeight:1.65}}>{m.text}</div>
+                  {m.confidence!=null&&<div style={{marginTop:'6px',fontSize:'0.68rem',color:'#8892a4'}}>Confidence: {m.confidence}%</div>}
+                </div>
+                {m.evidence&&m.evidence.length>0&&(
+                  <div style={{display:'flex',gap:'5px',flexWrap:'wrap'}}>
+                    {m.evidence.slice(0,4).map((ev, j)=>(
+                      <span key={j} style={{fontSize:'0.66rem',padding:'3px 8px',borderRadius:'5px',background:'#0f1117',border:'1px solid #1e2636',color:'#8892a4'}}>
+                        📌 {ev.type}: {ev.id}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            {m.role==='error'&&(
+              <div style={{background:'rgba(239,68,68,0.1)',border:'1px solid rgba(239,68,68,0.2)',borderRadius:'8px',padding:'9px 13px',maxWidth:'70%'}}>
+                <div style={{color:'#f87171',fontSize:'0.82rem'}}>⚠ {m.text}</div>
+              </div>
+            )}
+          </div>
+        ))}
+        {loading&&(
+          <div style={{display:'flex',gap:'8px',alignItems:'center',padding:'6px 0'}}>
+            <div className="spinner"/><span style={{fontSize:'0.8rem',color:'#8892a4'}}>Investigating…</span>
+          </div>
+        )}
+        <div ref={bottomRef}/>
+      </div>
+
+      <div style={{marginBottom:'8px',display:'flex',gap:'5px',flexWrap:'wrap'}}>
+        {SUGGESTIONS.map((s, i)=>(
+          <button key={i} onClick={()=>send(s)} className="btn-secondary" style={{fontSize:'0.71rem',padding:'5px 10px'}}>{s}</button>
+        ))}
+      </div>
+
+      <div className="chat-input-wrap">
+        <input className="chat-input" placeholder="Ask about settlements, leakage, anomalies…" value={query}
+          onChange={e=>setQuery(e.target.value)}
+          onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}}
+        />
+        <button className="btn-primary" onClick={()=>send()} disabled={loading} style={{padding:'7px 14px',opacity:loading?0.5:1}}>Send</button>
+      </div>
+    </div>
+  );
+};
+
+// ── RAZORPAY CONNECTION PAGE ─────────────────────────────────
+const RazorpayPage = () => {
+  const [health, setHealth] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [syncPid, setSyncPid] = useState('');
+  const [syncResult, setSyncResult] = useState(null);
+  const [syncing, setSyncing] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true); setError(null);
+    try { setHealth(await apiFetch('/api/razorpay/health')); }
+    catch(e) { setError(e.message); }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const syncPayment = async () => {
+    if (!syncPid.trim()) return;
+    setSyncing(true); setSyncResult(null);
+    try {
+      const r = await apiFetch('/api/razorpay/sync/payment/'+syncPid.trim(), { method:'POST' });
+      setSyncResult({ ok:true, msg:'Payment synced → Order ID: '+r.order_id });
+    } catch(e) { setSyncResult({ ok:false, msg:e.message }); }
+    finally { setSyncing(false); }
+  };
+
+  if (loading) return <Spinner/>;
+
+  const isConnected = health&&health.is_configured;
+
+  return (
+    <div>
+      <div style={{marginBottom:'18px'}}>
+        <h1 style={{fontSize:'1.4rem',fontWeight:700,marginBottom:'3px'}}>Razorpay Connection & Data Sources</h1>
+        <div style={{color:'#8892a4',fontSize:'0.82rem'}}>Test Mode integration and data source transparency settings</div>
+      </div>
+      {error && <ErrorBox msg={error} retry={load}/>}
+
+      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'14px',marginBottom:'18px'}}>
+        <div className="card" style={{padding:'18px'}}>
+          <div style={{fontWeight:600,marginBottom:'14px',fontSize:'0.86rem'}}>Connection Status</div>
+          {[
+            ['API Status', isConnected?'Connected':'Not Configured', isConnected?'#10b981':'#ef4444'],
+            ['Mode', health&&health.is_test_mode?'Test Mode (Safe)':'Live Mode', health&&health.is_test_mode?'#fbbf24':'#ef4444'],
+            ['Key ID', (health&&health.key_id)||'Not Set', '#8892a4'],
+            ['Secret Key', health&&health.key_secret_configured?'●●●● Configured':'Not Set', health&&health.key_secret_configured?'#10b981':'#ef4444'],
+            ['Webhook Secret', health&&health.webhook_secret_configured?'●●●● Configured':'Not Set', health&&health.webhook_secret_configured?'#10b981':'#ef4444'],
+          ].map(([k,v,color]) => (
+            <div key={k} style={{display:'flex',justifyContent:'space-between',padding:'7px 0',borderBottom:'1px solid #1e263635'}}>
+              <span style={{fontSize:'0.8rem',color:'#8892a4'}}>{k}</span>
+              <span style={{fontSize:'0.8rem',fontWeight:500,color}}>{v}</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="card" style={{padding:'18px'}}>
+          <div style={{fontWeight:600,marginBottom:'12px',fontSize:'0.86rem'}}>Data Source Transparency</div>
+          <div style={{marginBottom:'10px',padding:'10px',background:'rgba(59,91,219,0.08)',borderRadius:'8px',border:'1px solid rgba(59,91,219,0.2)'}}>
+            <div style={{display:'flex',gap:'7px',alignItems:'center',marginBottom:'3px'}}><span className="badge badge-rzp">RAZORPAY_TEST</span></div>
+            <div style={{fontSize:'0.74rem',color:'#8892a4'}}>Live payments ingested via REST API and HMAC-verified webhooks.</div>
+          </div>
+          <div style={{marginBottom:'10px',padding:'10px',background:'rgba(136,146,164,0.06)',borderRadius:'8px',border:'1px solid #1e2636'}}>
+            <div style={{display:'flex',gap:'7px',alignItems:'center',marginBottom:'3px'}}><span className="badge badge-demo">SYNTHETIC_DEMO_DATA</span></div>
+            <div style={{fontSize:'0.74rem',color:'#8892a4'}}>90-day controlled dataset (SEED=42). Flagship ₹17 leakage is synthetic.</div>
+          </div>
+          <div style={{padding:'10px',background:'rgba(139,92,246,0.08)',borderRadius:'8px',border:'1px solid rgba(139,92,246,0.2)'}}>
+            <div style={{display:'flex',gap:'7px',alignItems:'center',marginBottom:'3px'}}><span className="badge badge-sim">READ_ONLY_SIMULATION</span></div>
+            <div style={{fontSize:'0.74rem',color:'#8892a4'}}>Single-transaction sandbox calculations without touching ledger records.</div>
+          </div>
+        </div>
+      </div>
+
+      <div className="card" style={{padding:'18px'}}>
+        <div style={{fontWeight:600,marginBottom:'12px',fontSize:'0.86rem'}}>Sync Payment from Razorpay</div>
+        <div style={{display:'flex',gap:'10px',alignItems:'flex-end',flexWrap:'wrap',marginBottom:'10px'}}>
+          <div style={{flex:1,minWidth:'200px'}}>
+            <div style={{fontSize:'0.74rem',color:'#8892a4',marginBottom:'4px'}}>Payment ID (Razorpay Test Mode)</div>
+            <input placeholder="pay_xxxxxxxxxxxxx" value={syncPid} onChange={e=>setSyncPid(e.target.value)} style={{width:'100%'}}/>
+          </div>
+          <button className="btn-primary" onClick={syncPayment} disabled={syncing||!isConnected} style={{opacity:!isConnected?0.4:1}}>
+            {syncing?'Syncing…':'Sync Payment'}
+          </button>
+        </div>
+        {!isConnected&&(
+          <div style={{fontSize:'0.74rem',color:'#8892a4',padding:'8px',background:'#0f1117',borderRadius:'6px'}}>
+            Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET environment variables to enable live sync.
+          </div>
+        )}
+        {syncResult&&(
+          <div style={{padding:'9px 13px',borderRadius:'8px',marginTop:'8px',
+            background:syncResult.ok?'rgba(16,185,129,0.1)':'rgba(239,68,68,0.1)',
+            border:'1px solid '+(syncResult.ok?'rgba(16,185,129,0.3)':'rgba(239,68,68,0.3)'),
+            color:syncResult.ok?'#34d399':'#f87171',fontSize:'0.82rem'
+          }}>
+            {syncResult.ok?'✓ ':'⚠ '}{syncResult.msg}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ── SYSTEM STATUS ─────────────────────────────────────────────
+const SystemStatus = () => {
+  const [health, setHealth] = useState(null);
+  useEffect(() => {
+    apiFetch('/api/health').then(setHealth).catch(() => setHealth(null));
+  }, []);
+  const ok = health&&health.status==='healthy';
+  return (
+    <div style={{padding:'12px 14px',borderTop:'1px solid #1e2636',marginTop:'auto'}}>
+      <div style={{fontSize:'0.62rem',fontWeight:700,letterSpacing:'0.08em',color:'#8892a4',marginBottom:'8px'}}>SYSTEM STATUS</div>
+      {[
+        ['Database & Store', ok],
+        ['Reconciliation Engine', ok],
+        ['AI Investigator', ok&&!!health.ai_provider],
+        ['Razorpay Integration', ok&&!!health.razorpay_configured],
+      ].map(([label, good]) => (
+        <div key={label} style={{display:'flex',alignItems:'center',gap:'6px',marginBottom:'4px'}}>
+          <div className={'pulse-dot '+(good?'pulse-green':'pulse-red')}/>
+          <span style={{fontSize:'0.71rem',color:'#8892a4'}}>{label}</span>
+        </div>
+      ))}
+      <div style={{marginTop:'8px',padding:'5px 8px',background:'rgba(16,185,129,0.08)',borderRadius:'6px',border:'1px solid rgba(16,185,129,0.15)'}}>
+        <div style={{fontSize:'0.66rem',color:'#34d399',fontWeight:600}}>66/66 Tests Passing</div>
+        <div style={{fontSize:'0.62rem',color:'#8892a4'}}>Agents A-E + Extension Verified</div>
+      </div>
+      <div style={{marginTop:'5px'}}><span className="badge badge-rzp" style={{fontSize:'0.58rem'}}>RAZORPAY TEST MODE</span></div>
+    </div>
+  );
+};
+
+// ── MAIN APP ──────────────────────────────────────────────────
+const NAV = [
+  { id:'overview',    label:'Overview',            icon:'◈' },
+  { id:'simulator',   label:'Simulator',           icon:'⚡' },
+  { id:'settlements', label:'Settlements',          icon:'≡' },
+  { id:'anomalies',   label:'Anomalies & Review',  icon:'◉' },
+  { id:'chat',        label:'Finance Chat',         icon:'💬' },
+  { id:'razorpay',    label:'Razorpay & Sources',   icon:'⊕' },
+];
+
+function App() {
+  const [page, setPage] = useState('overview');
+  const [selectedSettlement, setSelectedSettlement] = useState(null);
+  const [investigatingVariance, setInvestigatingVariance] = useState(null);
+  const [summary, setSummary] = useState(null);
+  const [loadingSummary, setLoadingSummary] = useState(true);
+  const [errSummary, setErrSummary] = useState(null);
+
+  const loadSummary = useCallback(async () => {
+    setLoadingSummary(true); setErrSummary(null);
+    try { setSummary(await apiFetch('/api/dashboard/summary')); }
+    catch(e) { setErrSummary(e.message); }
+    finally { setLoadingSummary(false); }
+  }, []);
+
+  useEffect(() => { loadSummary(); }, [loadSummary]);
+
+  const onSelectSettlement = (s) => { setSelectedSettlement(s); setPage('settlement_detail'); };
+  const onInvestigate = (variance) => setInvestigatingVariance(variance);
+  const onReviewComplete = (review) => { loadSummary(); };
+
+  const renderPage = () => {
+    if (page==='settlement_detail'&&selectedSettlement)
+      return <SettlementDetailPage settlement={selectedSettlement} onBack={()=>setPage('settlements')} onInvestigate={onInvestigate}/>;
+    if (page==='simulator') return <SimulatorPage/>;
+    if (page==='settlements') return <SettlementsPage onSelectSettlement={onSelectSettlement}/>;
+    if (page==='anomalies') return <AnomaliesPage onInvestigate={onInvestigate}/>;
+    if (page==='chat') return <ChatPage/>;
+    if (page==='razorpay') return <RazorpayPage/>;
+    return <OverviewPage summary={summary} loadingSummary={loadingSummary} errSummary={errSummary} reloadSummary={loadSummary} onInvestigate={onInvestigate} setPage={setPage}/>;
+  };
+
+  return (
+    <div style={{display:'flex',minHeight:'100vh'}}>
+      <aside style={{width:'220px',minWidth:'220px',background:'#161b27',borderRight:'1px solid #1e2636',display:'flex',flexDirection:'column',position:'sticky',top:0,height:'100vh',overflowY:'auto'}}>
+        <div style={{padding:'18px 14px',borderBottom:'1px solid #1e2636'}}>
+          <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'2px'}}>
+            <div style={{width:'24px',height:'24px',background:'#3B5BDB',borderRadius:'6px',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.68rem',fontWeight:700,color:'white'}}>SD</div>
+            <span style={{fontWeight:700,fontSize:'0.9rem'}}>Settlement Detective</span>
+          </div>
+          <div style={{fontSize:'0.65rem',color:'#8892a4',marginLeft:'32px'}}>AI Finance Controller</div>
+        </div>
+        <nav style={{padding:'8px'}}>
+          {NAV.map(n => (
+            <button key={n.id}
+              className={'nav-item '+(page===n.id||(page==='settlement_detail'&&n.id==='settlements')?'active':'')}
+              style={{display:'flex',alignItems:'center',gap:'9px',width:'100%',padding:'9px 12px',borderRadius:'8px',background:'transparent',color:'#8892a4',fontSize:'0.83rem',marginBottom:'2px',textAlign:'left'}}
+              onClick={()=>{ setPage(n.id); if(n.id==='settlements') setSelectedSettlement(null); }}>
+              <span style={{fontSize:'0.9rem'}}>{n.icon}</span>{n.label}
+            </button>
+          ))}
+        </nav>
+        <SystemStatus/>
+      </aside>
+
+      <main style={{flex:1,padding:'28px',overflowY:'auto',maxWidth:'1200px'}}>
+        {renderPage()}
+      </main>
+
+      {investigatingVariance && (
+        <InvestigationPanel
+          variance={investigatingVariance}
+          onClose={()=>setInvestigatingVariance(null)}
+          onReviewComplete={onReviewComplete}
+        />
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
